@@ -551,7 +551,7 @@ class MainWindow(QtWidgets.QMainWindow):
             joined_fnames  =  ' '
             for fname in self.fnames:
                 joined_fnames  +=  str(fname[fname.rfind('/') + 1:]) +  ' ~~~ '
-            self.fnames  =  self.fnames[::-1]
+            self.fnames  =  self.fnames
             self.fname_raw_lbl.setText(joined_fnames)
             self.frame_raw_mip.clear()
             self.frame_segm_mip.clear()
@@ -593,16 +593,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Activate popup tool for sptial analysis."""
         raw_data         =  None
         analysis_folder  =  str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select the analysis folder"))
-        fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])[::-1]
-        # spots_trckd      =  AnalysisLoader.SpotsTracked(analysis_folder).spts_trck_fin
-        # if fnames[0][-4:] == '.czi':
-        #     raw_data  =  LoadRawData.LoadRawDataCzi(fnames, np.load(analysis_folder + '/ch_numb.npy'))
-        # elif fnames[0][-4:] == '.tif':
-        #     raw_data  =  LoadRawData.LoadRawDataTiff(fnames, np.load(analysis_folder + '/ch_numb.npy'))
-        #
-        # crop_roi               =  np.load(analysis_folder + '/crop_roi.npy')
-        # raw_data.raw_data_mip  =  raw_data.raw_data_mip[:, crop_roi[0]:crop_roi[2], crop_roi[1]:crop_roi[3]]
-        # raw_data.raw_data      =  raw_data.raw_data[:, :, crop_roi[0]:crop_roi[2], crop_roi[1]:crop_roi[3]]
+        fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])
         raw_data          =  AnalysisLoader.RawData(analysis_folder, fnames, True)
         self.mpp_spatial  =  SpatialAnalisys(raw_data, analysis_folder)
         self.mpp_spatial.show()
@@ -627,9 +618,27 @@ class MainWindow(QtWidgets.QMainWindow):
     def check_photobleaching(self):
         """Check photobleaching."""
         analysis_folder  =  str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select the analysis folder"))
-        fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])[::-1]
+        fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])
         raw_data         =  AnalysisLoader.RawData(analysis_folder, fnames)
         phtblc           =  PhotoBleachingEstimate.PhotoBleachingEstimate(analysis_folder, raw_data)
+        self.mpp6        =  PhotobleachingTool(phtblc, fnames, analysis_folder, self.soft_version)
+        self.mpp6.show()
+
+    def check_photobleaching2(self):
+        """Check photobleaching."""
+        goon_flag         =  True
+        analysis_folders  =  []
+        fnamess           =  []
+        while goon_flag is True:
+            analysis_folder  =  str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select the analysis folder"))
+            fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])
+            if analysis_folder == "":
+                goon_flag  =  False
+            else:
+                analysis_folders.append(analysis_folder)
+                fnamess.append(fnames)
+
+        phtblc           =  PhotoBleachingEstimate.PhotoBleachingEstimateSeveralAnalysis(analysis_folders, fnamess)
         self.mpp6        =  PhotobleachingTool(phtblc, fnames, analysis_folder, self.soft_version)
         self.mpp6.show()
 
