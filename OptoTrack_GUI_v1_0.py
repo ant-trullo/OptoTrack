@@ -594,7 +594,7 @@ class MainWindow(QtWidgets.QMainWindow):
         raw_data         =  None
         analysis_folder  =  str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select the analysis folder"))
         fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])
-        raw_data          =  AnalysisLoader.RawData(analysis_folder, fnames, True)
+        raw_data          =  AnalysisLoader.RawData(analysis_folder, fnames)
         self.mpp_spatial  =  SpatialAnalisys(raw_data, analysis_folder)
         self.mpp_spatial.show()
 
