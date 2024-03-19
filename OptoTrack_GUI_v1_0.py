@@ -567,8 +567,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.merge_radius_edt.setText(str(self.merge_radius_value))
             self.dist_thr_edt.setText(str(self.dist_thr_value))
             self.frame_raw_mip.setImage(self.raw_data.raw_data_mip)
-            self.pixsize_x_lbl.setText("pix size XY = " + str(np.round(self.raw_data.pix_size_xy * 1000000, decimals=4)) + "µm;")
-            self.pixsize_z_lbl.setText("Z step = " + str(np.round(self.raw_data.pix_size_z * 1000000, decimals=4)) + "µm;")
+            self.pixsize_x_lbl.setText("pix size XY = " + str(np.round(self.raw_data.pix_size_xy, decimals=4)) + "µm;")
+            self.pixsize_z_lbl.setText("Z step = " + str(np.round(self.raw_data.pix_size_z, decimals=4)) + "µm;")
             self.time_step_lbl.setText("Time Step = " + str(np.round(self.raw_data.time_step_value, decimals=4)) + "s")
             self.crop_roi_raw  =  np.load(analysis_folder + '/crop_roi.npy')
 
