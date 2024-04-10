@@ -282,6 +282,7 @@ class MainWindow(QtWidgets.QMainWindow):
         colors4map  =  []
         for k in range(mycmap.shape[0]):
             colors4map.append(mycmap[k, :])
+        colors4map     =  colors4map + colors4map + colors4map + colors4map + colors4map + colors4map
         colors4map[0]  =  np.array([0, 0, 0])
 
         self.frame_segm_mip    =  frame_segm_mip
@@ -357,7 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_frame_from_raw_mip(self):
         """Update the frame of segmented mip from raw mip."""
         self.tstep_lbl.setText("T step " + str(self.frame_raw_mip.currentIndex))
-        self.time_lbl.setText("time " + time.strftime("%M:%S", time.gmtime(self.frame_raw_mip.currentIndex * self.raw_data.time_step_value)))
+        self.time_lbl.setText("time " + time.strftime("%H:%M:%S", time.gmtime(self.frame_raw_mip.currentIndex * self.raw_data.time_step_value)))
         try:
             self.frame_segm_mip.setCurrentIndex(self.frame_raw_mip.currentIndex)
         except AttributeError:
@@ -551,6 +552,7 @@ class MainWindow(QtWidgets.QMainWindow):
             joined_fnames  =  ' '
             for fname in self.fnames:
                 joined_fnames  +=  str(fname[fname.rfind('/') + 1:]) +  ' ~~~ '
+
             self.fnames  =  self.fnames
             self.fname_raw_lbl.setText(joined_fnames)
             self.frame_raw_mip.clear()
@@ -570,7 +572,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pixsize_x_lbl.setText("pix size XY = " + str(np.round(self.raw_data.pix_size_xy, decimals=4)) + "µm;")
             self.pixsize_z_lbl.setText("Z step = " + str(np.round(self.raw_data.pix_size_z, decimals=4)) + "µm;")
             self.time_step_lbl.setText("Time Step = " + str(np.round(self.raw_data.time_step_value, decimals=4)) + "s")
-            self.crop_roi_raw  =  np.load(analysis_folder + '/crop_roi.npy')
+            self.crop_roi_raw    =  np.load(analysis_folder + '/crop_roi.npy')
+            self.pre_nopre_flag  =  np.load(analysis_folder + '/pre_nopre_flag.npy')
 
             self.spots_3d_det  =  AnalysisLoader.SpotsDetected(analysis_folder)
             self.spots_trckd   =  AnalysisLoader.SpotsTracked(analysis_folder)
@@ -591,10 +594,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def spatial_analysis(self):
         """Activate popup tool for sptial analysis."""
-        raw_data         =  None
         analysis_folder  =  str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select the analysis folder"))
         fnames           =  natsorted(QtWidgets.QFileDialog.getOpenFileNames(None, "Select czi (or lsm) data files to concatenate...", filter="*.lsm *.czi *.tif *.lif")[0])
-        raw_data          =  LoadRawData.LoadRawDataCzi(fnames)
+        self.busy_indicator()
+        QtWidgets.QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
+
+        try:
+            raw_data          =  LoadRawData.LoadRawDataCzi(fnames)
+        except Exception:
+            traceback.print_exc()
+        self.ready_indicator()
         self.mpp_spatial  =  SpatialAnalisys(raw_data, analysis_folder)
         self.mpp_spatial.show()
 
@@ -901,6 +911,13 @@ class TestSpotsDetectionSetting(QtWidgets.QWidget):
         layout.addWidget(tabs_b)
         layout.addLayout(commands)
 
+        mycmap  =  np.fromfile("mycmap.bin", "uint16").reshape((10000, 3))      # / 255.0
+        self.colors4map  =  []
+        for k in range(mycmap.shape[0]):
+            self.colors4map.append(mycmap[k, :])
+        self.colors4map     =  self.colors4map + self.colors4map + self.colors4map + self.colors4map + self.colors4map + self.colors4map
+        self.colors4map[0]  =  np.array([0, 0, 0])
+
         self.frame1           =  frame1
         self.frame2           =  frame2
         self.frame3           =  frame3
@@ -935,7 +952,7 @@ class TestSpotsDetectionSetting(QtWidgets.QWidget):
 
     def update_time_and_frame(self):
         """Update time and frame labels from frame1."""
-        self.tstep_lbl.setText("time  " + time.strftime("%M:%S", time.gmtime(self.frame1.currentIndex * self.time_step_value)))
+        self.tstep_lbl.setText("time  " + time.strftime("%H:%M:%S", time.gmtime(self.frame1.currentIndex * self.time_step_value)))
         self.t_frame_lbl.setText("t frame  "  +  str(self.frame1.currentIndex))
 
     def update_frame3(self):
@@ -964,9 +981,13 @@ class TestSpotsDetectionSetting(QtWidgets.QWidget):
             spots  =  SpotsDetection3D.SpotsDetection3D_Single4Test([self.spts_4d[self.cif, :, :, :], self.spots_thr_value, self.volume_thr_value, self.merge_radius_value])
             # self.frame2.setImage(np.sign(spots.spots_ints))
             self.frame2.setImage(spots.spots_clean)
+            self.clean_cmap  =  pg.ColorMap(np.linspace(0, 1, spots.spots_clean.max()), color=self.colors4map)
+            self.frame2.setColorMap(self.clean_cmap)
             pg.image(spots.spots_clean, title='clean')
             self.frame3.setImage(self.spts_4d[self.cif])
             self.frame4.setImage(spots.spots_lbls)
+            self.fourd_cmap  =  pg.ColorMap(np.linspace(0, 1, spots.spots_lbls.max()), color=self.colors4map)
+            self.frame4.setColorMap(self.fourd_cmap)
         except Exception:
             traceback.print_exc()
 
@@ -998,7 +1019,7 @@ class ChopStack(QtWidgets.QWidget):
         current_frame_lbl.setFixedSize(int(ksf_h * 100), int(ksf_w * 25))
 
         time_lbl  =  QtWidgets.QLabel("T: 0", self)
-        time_lbl.setFixedSize(int(ksf_h * 70), int(ksf_w * 25))
+        time_lbl.setFixedSize(int(ksf_h * 130), int(ksf_w * 25))
 
         set_first_frame_btn  =  QtWidgets.QPushButton("Set First 0", self)
         set_first_frame_btn.clicked.connect(self.set_first_frame)
@@ -1042,7 +1063,7 @@ class ChopStack(QtWidgets.QWidget):
     def update_frame_raw_data(self):
         """Update frame number and time of the widget."""
         self.current_frame_lbl.setText("Frame: " + str(self.frame_raw.currentIndex))
-        self.time_lbl.setText("T: " + time.strftime("%M:%S", time.gmtime(self.frame_raw.currentIndex * self.time_step_value)))
+        self.time_lbl.setText("T: " + time.strftime("%H:%M:%S", time.gmtime(self.frame_raw.currentIndex * self.time_step_value)))
 
     def set_first_frame(self):
         """Set first frame choise."""
@@ -1113,7 +1134,7 @@ class CropStack(QtWidgets.QWidget):
     def update_frame_raw_data(self):
         """Update frame number and time of the widget."""
         self.current_frame_lbl.setText("Frame: " + str(self.frame_raw.currentIndex))
-        self.time_lbl.setText("T: " + time.strftime("%M:%S", time.gmtime(self.frame_raw.currentIndex * self.time_step_value)))
+        self.time_lbl.setText("T: " + time.strftime("%H:%M:%S", time.gmtime(self.frame_raw.currentIndex * self.time_step_value)))
 
     @QtCore.pyqtSlot()
     def insert_close(self):
@@ -1271,7 +1292,7 @@ class SpatialAnalisys(QtWidgets.QWidget):
     def update_from_frame1(self):
         """Update labels from frame current index."""
         self.frame_lbl.setText("frame " + str(self.frame1.currentIndex))
-        self.time_lbl.setText("time " + time.strftime("%M:%S", time.gmtime(self.frame1.currentIndex * self.raw_data.time_step_value)))
+        self.time_lbl.setText("time " + time.strftime("%H:%M:%S", time.gmtime(self.frame1.currentIndex * self.raw_data.time_step_value)))
 
     def roi_update_coords(self):
         """Update coordinate value of the roi corners coordinate."""
